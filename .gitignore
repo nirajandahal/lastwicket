@@ -1,10 +1,5 @@
-node_modules/
-.expo/
-dist/
-web-build/
-android/
-ios/
-*.apk
-*.aab
-.DS_Store
-npm-debug.*
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
