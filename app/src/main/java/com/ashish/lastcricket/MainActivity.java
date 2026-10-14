@@ -131,7 +131,22 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (web != null) web.onPause();
+        if (web != null) {
+            web.evaluateJavascript("window.__pause&&window.__pause()", null); // auto-pause the match
+            web.onPause();
+        }
+    }
+
+    // Back = pause during a match; Back again (or on menu screens) = exit.
+    @Override
+    public void onBackPressed() {
+        if (web == null) {
+            super.onBackPressed();
+            return;
+        }
+        web.evaluateJavascript("window.__back?window.__back():false", value -> {
+            if (!"true".equals(value)) MainActivity.super.onBackPressed();
+        });
     }
 
     @Override

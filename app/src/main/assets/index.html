@@ -23,12 +23,13 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webki
 #ov{overflow:auto;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.68);color:#fff;text-align:center;border-radius:10px;padding:16px}
 #ov h1{margin:0 0 8px}#ov p{max-width:440px;margin:4px 0;line-height:1.4}
 #ov button{margin-top:14px;padding:12px 30px}
+#pz{display:none;overflow:auto;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.72);color:#fff;text-align:center;border-radius:10px;padding:16px}#pz h1{margin:0 0 8px}#pz p{margin:4px 0;opacity:.85}#pz button{margin-top:14px;padding:12px 30px}
 small{opacity:.7;display:block;text-align:center;margin-top:6px}
 @media(max-height:560px){#btns button{min-height:52px;padding:6px}}
 </style></head><body><div id="app">
 <div id="sb"><div>RUNS<b id="r">0</b></div><div>BALLS<b id="bl">0</b></div><div>FOURS<b id="f">0</b></div><div>SIXES<b id="s">0</b></div><div>STRIKE RATE<b id="sr">0</b></div><div>BEST<b id="bt">0</b></div></div>
 <div id="w"><canvas id="c"></canvas>
-<button id="mt" style="position:absolute;left:8px;bottom:8px;padding:6px 10px;font-size:15px;background:rgba(0,0,0,.5)">🔊</button><div id="ov"></div></div>
+<button id="mt" style="position:absolute;left:8px;bottom:8px;padding:6px 10px;font-size:15px;background:rgba(0,0,0,.5)">🔊</button><button id="pb" aria-label="Pause" style="position:absolute;right:8px;bottom:8px;padding:6px 12px;font-size:15px;background:rgba(0,0,0,.5)">⏸</button><div id="ov"></div><div id="pz"><h1>PAUSED</h1><p>Your innings is on hold.</p><button id="rs">▶ Resume</button></div></div>
 <div id="btns"><button data-d="-1">◀ LEG SIDE</button><button data-d="0">▲ FRONT</button><button data-d="2" style="background:#8a6d1f">🛡 DEFEND</button><button data-d="1">OFF SIDE ▶</button></div>
 <small>Keys: ← / A leg · ↑ / W / Space front · ↓ / S defend · → / D off</small>
 </div>
@@ -37,7 +38,7 @@ const $=id=>document.getElementById(id),cv=$('c'),g=cv.getContext('2d'),BATZ=.6,
 cv.width=W;cv.height=H;
 const P=(x,y,z)=>{const d=z-CZ;return[W/2+F*x/d,HZ+F*(CY-y)/d,F/d]};
 const R=Math.random,rr=(a,b)=>a+R()*(b-a);
-let S='idle',faced=0,runs=0,fours=0,sixes=0,best=0,b=null,hb=null,bt=0,rt=0,RU=1,swD=null,swT=0,swung=false,bz=36,mtx=null,down=false,isOut=false,timer=0,lt=0;
+let S='idle',faced=0,runs=0,fours=0,sixes=0,best=0,b=null,hb=null,bt=0,rt=0,RU=1,swD=null,swT=0,swung=false,bz=36,mtx=null,down=false,isOut=false,timer=0,lt=0,paused=false;
 try{best=+localStorage.getItem('cbest')||0}catch(e){}
 const dif=()=>Math.min(1,faced/40);
 let T=0,cheer=0,cs=0,fw=[],pend=[],mile=0,mileT='',swCd=0,batE=0,batV=0,batD=0;
@@ -63,7 +64,8 @@ function gen(){const d=dif();let v=rr(15,20+9*d);if(R()<.06+.3*d)v-=rr(4,7);v=Ma
  const t=R(),sp=.5+.9*d,xt=t<.33?-rr(.35,.35+sp):t<.66?rr(-.3,.3):rr(.35,.35+sp);
  let zb=rr(5,9);if(R()<.08+.3*d)zb=R()<.5?rr(1.4,2.8):rr(10,12.5);
  const xb=xt+rr(-1,1)*(.15+.9*d),x0=rr(-.4,.4),tb=(19-zb)/v,vy0=(4.9*tb*tb-2.1)/tb,e=(zb>9.5?.88:.6)*rr(.88,1.12),v2=v*.82;
- return{v,xt,zb,xb,x0,tb,vy0,vy1:-(vy0-G*tb)*e,v2,tc:tb+(zb-BATZ)/v2,t0:tb+zb/v2,te:tb+(zb+3)/v2,hit:0,err:0,dir:0,swE:0}}
+ const k={v,xt,zb,xb,x0,tb,vy0,vy1:-(vy0-G*tb)*e,v2,tc:tb+(zb-BATZ)/v2,t0:tb+zb/v2,te:tb+(zb+3)/v2,hit:0,err:0,dir:0,swE:0};fixLine(k);return k}
+function fixLine(k){const u=(k.zb-BATZ)/k.zb;let xc=k.xb+(k.xt-k.xb)*u;if(Math.abs(xc)>1){xc=Math.sign(xc)*rr(.8,1);k.xt=(xc-k.xb*(1-u))/u}k.xc=xc}
 function bs(k,t){if(t<k.tb){const u=t/k.tb;return{x:k.x0+(k.xb-k.x0)*u,y:2.1+k.vy0*t-4.9*t*t,z:19-k.v*t}}
  const s=t-k.tb,u=Math.min(1,s*k.v2/k.zb);return{x:k.xb+(k.xt-k.xb)*u,y:Math.max(0,k.vy1*s-4.9*s*s),z:k.zb-k.v2*s}}
 
@@ -75,19 +77,19 @@ function over(){S='over';if(runs>best){best=runs;try{localStorage.setItem('cbest
  show('<h1>OUT!</h1><p style="font-size:22px">You scored <b>'+runs+'</b> off '+faced+' balls</p><p>'+fours+' fours · '+sixes+' sixes · best '+best+'</p>','Bat again')}
 function start(){snd();runs=faced=fours=sixes=0;$('ov').style.display='none';hud();next()}
 
-function press(d){snd();if(S!=='flight'||swCd>0)return;swCd=.28;const e=bt+.13-b.tc;fromPose=curPose?{...curPose}:null;swHard=Math.abs(e)<.09;swD=d;swT=0;
+function press(d){if(paused)return;snd();if(S!=='flight'||swCd>0)return;swCd=.28;const e=bt+.13-b.tc;fromPose=curPose?{...curPose}:null;swHard=Math.abs(e)<.09;swD=d;swT=0;
  if(!swung||Math.abs(e)<Math.abs(b.swE))b.swE=e;swung=true;
- const df=d===2,off=Math.abs(b.xt-(df?0:d*.6));
+ const df=d===2,off=Math.abs(b.xc-(df?0:d*.6));
  if(Math.abs(e)<=.15&&b.hy<=(df?1.6:2)&&off<=(df?.5:.65)&&(!b.hit||Math.abs(e)<Math.abs(b.err))){b.hit=1;b.err=e;b.dir=df?0:d;b.def=df;b.off=off}}
 
 function launch(){hitSnd(b.def?.3:Math.max(.2,1-Math.abs(b.err)/.15));if(b.def){const ad=Math.abs(b.err);return ad>.1&&R()<.3?finish('CAUGHT BEHIND!','Defensive edge',0,1):ad>.1?finish('EDGED! 1','Went past the slips',1,0):finish('DEFENDED','Solid defence',0,0)}const e=b.err,ae=Math.abs(e),o=b.off,tq=1-ae/.15,q=tq*(o<.3?1:o<.5?.72:.4);
  const tl=ae<.04?'Perfect timing':e<0?'A bit early':'A bit late';
  if((o>=.5&&R()<.55)||(ae>.12&&R()<.3)){if(R()<.5)return finish('CAUGHT BEHIND!','Edged to the keeper',0,1);const r=[1,2,4][R()*3|0];return finish('EDGED! '+r,'Wrong shot for the line',r,0)}
- const th=([-52,0,48][b.dir+1]-e*150+rr(-6,6)+(b.dir?0:b.xt*20))*Math.PI/180;
+ const th=([-52,0,48][b.dir+1]-e*150+rr(-6,6)+(b.dir?0:b.xc*20))*Math.PI/180;
  let sp=8+.25*b.v+19*q,vy=rr(.5,2);
  if(ae>.09){vy=rr(6,13);sp*=.8}else if(tq>.65&&o<.5&&R()<.3+.3*dif()){vy=rr(8,11);sp=Math.max(sp,34)}
  const ux=Math.sin(th),uz=Math.cos(th),est=vy>3?sp*2*vy/G:Math.min(60,sp*sp/5.2);let ch=0,bd=1e9;fl.forEach(f=>{const pr=f.x*ux+f.z*uz,pe=Math.abs(f.x*uz-f.z*ux),sc=pr<0?1e6+pe:pe+.15*Math.abs(pr-est);if(sc<bd){bd=sc;ch=f.i}});
- hb={x:b.xt,z:BATZ,y:.1,vx:sp*ux,vz:sp*uz,vy,sub:tl,bounced:0,drop:{},tr:[],ch};S='hit'}
+ hb={x:b.xc,z:BATZ,y:.1,vx:sp*ux,vz:sp*uz,vy,sub:tl,bounced:0,drop:{},tr:[],ch};S='hit'}
 
 function fr(){const h=hb,D=Math.hypot(h.x,h.z),r=D<14?0:D<28?1:D<42?2:3;finish(r?r+(r>1?' RUNS':' RUN'):'NO RUN','Fielded · '+h.sub,r,0)}
 function updHit(dt){const h=hb;
@@ -108,9 +110,9 @@ function upd(dt){T+=dt;swCd=Math.max(0,swCd-dt);{const tg=swD!==null&&swT<.3?1:0
   if(b.hit&&bt>=b.tc)launch();
   else if(!b.hit){
    if(!b.chk&&bt>=b.t0){b.chk=1;const p=bs(b,b.t0);if(Math.abs(p.x)<.15&&p.y<.75){down=true;return finish('BOWLED!','Clean bowled',0,1)}}
-   if(bt>=b.te){if(swung)finish('MISSED!',b.swE<-.15?'Too early':b.swE>.15?'Too late':'Out of reach',0,0);else if(Math.abs(b.xt)>1.25)finish('WIDE','+1 run',1,0,false);else finish('DOT BALL','Left alone',0,0)}}}
+   if(bt>=b.te){if(swung)finish('MISSED!',b.swE<-.15?'Too early':b.swE>.15?'Too late':'Out of reach',0,0);else if(Math.abs(b.xc)>1.25)finish('WIDE','+1 run',1,0,false);else finish('DOT BALL','Left alone',0,0)}}}
  else if(S==='hit'){for(let i=0;i<4&&S==='hit';i++)updHit(dt*1.7/4)}
- else if(S==='res'){timer-=dt;if(timer<=0)isOut?over():next()}}
+ else if(S==='res'){timer-=dt;if(timer<=0&&(isOut||!(mile>0||pend.length||fw.length)))isOut?over():next()}}
 
 function quad(x0,x1,z0,z1,c){z0=Math.max(z0,CZ+.7);if(z1<=z0)return;const a=P(x0,0,z0),b2=P(x1,0,z0),c2=P(x1,0,z1),d2=P(x0,0,z1);g.fillStyle=c;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b2[0],b2[1]);g.lineTo(c2[0],c2[1]);g.lineTo(d2[0],d2[1]);g.fill()}
 function man(x,z,col,al){if(z-CZ<1)return;const[sx,sy,s]=P(x,0,z),h=1.75*s,w=.5*s;g.globalAlpha=al||1;
@@ -208,12 +210,18 @@ function draw(){
  if(mtx){g.textAlign='center';g.font='900 54px system-ui';g.lineWidth=7;g.strokeStyle='rgba(0,0,0,.65)';g.strokeText(mtx.t,W/2,105);g.fillStyle=mtx.col;g.fillText(mtx.t,W/2,105);
   g.font='600 20px system-ui';g.strokeText(mtx.sub,W/2,140);g.fillStyle='#fff';g.fillText(mtx.sub,W/2,140)}}
 
-function frame(ts){const dt=Math.min(.033,(ts-lt)/1000||0);lt=ts;upd(dt);draw();requestAnimationFrame(frame)}
+function frame(ts){const dt=Math.min(.033,(ts-lt)/1000||0);lt=ts;if(!paused)upd(dt);draw();requestAnimationFrame(frame)}
 document.querySelectorAll('#btns button').forEach(x=>x.addEventListener('pointerdown',e=>{e.preventDefault();try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}press(+x.dataset.d)}));
-addEventListener('keydown',e=>{const k=e.key.toLowerCase(),d={arrowleft:-1,a:-1,arrowup:0,w:0,arrowdown:2,s:2,' ':0,arrowright:1,d:1}[k];if(d!==undefined){e.preventDefault();press(d)}});
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='p'||k==='escape'){setPause(!paused);return}const d={arrowleft:-1,a:-1,arrowup:0,w:0,arrowdown:2,s:2,' ':0,arrowright:1,d:1}[k];if(d!==undefined){e.preventDefault();press(d)}});
 cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width;press(x<.33?-1:x>.67?1:0)});
+function playing(){return S==='runup'||S==='flight'||S==='hit'||S==='res'}
+function setPause(p){if(p===paused)return;if(p&&!playing())return;paused=p;$('pz').style.display=p?'flex':'none';try{if(AC)p?AC.suspend():AC.resume()}catch(e){}if(!p)lt=performance.now()}
+$('pb').onclick=()=>setPause(true);$('rs').onclick=()=>setPause(false);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)setPause(true)});addEventListener('pagehide',()=>setPause(true));
+window.__pause=()=>setPause(true);
+window.__back=()=>{if(paused||!playing())return false;setPause(true);return true};
 $('mt').onclick=()=>{mute=!mute;$('mt').textContent=mute?'🔇':'🔊';snd()};
 fit();if(typeof ResizeObserver!=='undefined')new ResizeObserver(fit).observe($('w'));addEventListener('resize',fit);
-hud();show('<h1>Last Wicket Cricket</h1><p>You are a right-handed batter. One wicket only — survive and score as long as you can.</p><p><b>◀ Leg side</b> · <b>▲ Front</b> · <b>▼ Defend</b> · <b>Off side ▶</b></p><p>Defend blocks for no runs — your safe shot against yorkers and tricky balls. You can also tap the left, centre or right of the field.</p><p>Each button also moves your feet: ◀ steps toward leg, ▶ steps toward off, ▲ stays in line. If the ball is too far from where you step, you miss it.</p><p>Time your shot as the ball reaches you. Watch the ball\'s shadow to read the bounce, match the shot to the line, and leave the wides. The bowler gets trickier every ball. The radar (top right) shows the field.</p>','Start batting');
+hud();show('<h1>Last Wicket Cricket</h1><p>You are a right-handed batter. One wicket only — survive and score as long as you can.</p><p><b>◀ Leg side</b> · <b>▲ Front</b> · <b>▼ Defend</b> · <b>Off side ▶</b></p><p>Defend blocks for no runs — your safe shot against yorkers and tricky balls. You can also tap the left, centre or right of the field.</p><p>Each button also moves your feet: ◀ steps toward leg, ▶ steps toward off, ▲ stays in line. If the ball is too far from where you step, you miss it.</p><p>Time your shot as the ball reaches you. Watch the ball\'s shadow to read the bounce, match the shot to the line, and pick your shot - every ball can be played. The bowler gets trickier every ball. The radar (top right) shows the field.</p>','Start batting');
 requestAnimationFrame(frame);
 </script></body></html>
